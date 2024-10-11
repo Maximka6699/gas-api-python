@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from . import models, schemas
 from datetime import date
+from .models import User
 
 # Создание пользователя
 def create_user(db: Session, user: schemas.UserCreate):
@@ -25,3 +26,7 @@ def get_user(db: Session, user_id: int):
 # Получение всех пользователей
 def get_users(db: Session, skip: int = 0, limit: int = 10):
     return db.query(models.User).offset(skip).limit(limit).all()
+
+# Получение пользователя по имени
+def get_user_by_username(db: Session, username: str):
+    return db.query(User).filter(User.username == username).first()
