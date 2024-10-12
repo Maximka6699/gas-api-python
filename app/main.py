@@ -1,5 +1,4 @@
 from fastapi import FastAPI, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm
 from datetime import timedelta
 from sqlalchemy.orm import Session
 from . import rest, models, schemas, database; from .schemas import LoginRequest
@@ -9,6 +8,8 @@ from .database import engine, get_db
 from typing import List
 from .auth import create_access_token, verify_password, get_password_hash, get_current_user
 import logging
+
+from .routes import fuels
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -110,3 +111,7 @@ def read_user(user_id: int, db: Session = Depends(get_db)):
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
     return db_user
+
+
+# штучка, которая позволяет подключить эндпоинты из другого файла
+app.include_router(fuels.router)

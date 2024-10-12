@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, func, ForeignKey, Float
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, func, ForeignKey, Float, Table
 from .database import Base
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
@@ -25,7 +25,7 @@ class Review(Base):
     gas_id = Column(Integer, ForeignKey('Gases.id'), index=True)
     text = Column(String)
     review_date = Column(DateTime(timezone=True), default=func.now())
-    gas = relationship("Gas", back_populates="Reviews")
+    gas = relationship("Gas", back_populates="reviews")
 
 class Gas(Base):
     __tablename__ = "Gases"
@@ -33,16 +33,17 @@ class Gas(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     adress = Column(String)
     photo = Column(String)
-    reviews = relationship("Review", back_populates="Gases")
-    fdus = relationship("FDU", back_populates="Gases")
+    reviews = relationship("Review", back_populates="gas")
+    fdus = relationship("FDU", back_populates="gases")
 
 class FDU(Base):
     __tablename__ = "FDUs"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    gas_id = Column(Integer, ForeignKey('Gases.id'), index=True)
     service_date = Column(DateTime(timezone=True), default=func.now())
-    gases = relationship("Gas", back_populates="FDUs")
-    fuels = relationship("Fuel", back_populates="FDUs")
+    gases = relationship("Gas", back_populates="fdus")
+    fuels = relationship("Fuel", secondary="fuel_fdu", back_populates="fdus")
 
 class Fuel(Base):
     __tablename__ = "Fuels"
@@ -50,4 +51,13 @@ class Fuel(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     name = Column(String)
     price = Column(Float)
-    fdus = relationship("FDU", back_populates="Fuels")
+    fdus_id = Column(Integer, ForeignKey('FDUs.id'))
+    fdus = relationship("FDU", secondary="fuel_fdu", back_populates="fuels")
+
+# ----------------------------------------------------------------
+
+fuel_fdu = Table(
+    'fuel_fdu', Base.metadata,
+    Column('fuel_id', Integer, ForeignKey('Fuels.id'), primary_key=True),
+    Column('fdu_id', Integer, ForeignKey('FDUs.id'), primary_key=True)
+)
