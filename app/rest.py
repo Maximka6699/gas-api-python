@@ -30,3 +30,23 @@ def get_users(db: Session, skip: int = 0, limit: int = 10):
 # Получение пользователя по имени
 def get_user_by_username(db: Session, username: str):
     return db.query(User).filter(User.username == username).first()
+
+# ----------------------------------------------------------------------------------
+# fuel
+def get_fuels(db: Session, skip: int = 0, limit: int = 10):
+    return db.query(models.Fuel).offset(skip).limit(limit).all()
+def get_fuel(db: Session, fuel_id: int):
+    return db.query(models.Fuel).filter(models.Fuel.id == fuel_id).first()
+
+# gases
+
+def get_gases(db: Session, skip: int = 0, limit: int = 10):
+    return db.query(models.Gas).offset(skip).limit(limit).all()
+def get_gas(db: Session, gas_id: int):
+    return db.query(models.Gas).filter(models.Gas.id == gas_id).first()
+# fdus
+
+def get_fdus(db: Session, skip: int = 0, limit: int = 10):
+    return db.query(models.FDU).offset(skip).limit(limit).all()
+def get_fdu(db: Session, fdu_id: int):
+    return db.query(models.FDU).filter(models.FDU.id == fdu_id).first()

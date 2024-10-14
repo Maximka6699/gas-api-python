@@ -9,7 +9,7 @@ from typing import List
 from .auth import create_access_token, verify_password, get_password_hash, get_current_user
 import logging
 
-from .routes import fuels
+from .routes import fuels, gases, fdus
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -115,3 +115,5 @@ def read_user(user_id: int, db: Session = Depends(get_db)):
 
 # штучка, которая позволяет подключить эндпоинты из другого файла
 app.include_router(fuels.router)
+app.include_router(gases.router)
+app.include_router(fdus.router)
