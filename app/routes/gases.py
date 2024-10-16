@@ -16,9 +16,9 @@ def create_gas(gas: schemas.GasCreate, db: Session = Depends(get_db)):
     # Проверяем, существуют ли указанные FDU
     fdu_list = []
     for fdu_id in gas.fdus:
-        fdu = db.query(models.FDU).filter(models.FDU.id == fdu_id.id).first()
+        fdu = db.query(models.FDU).filter(models.FDU.id == fdu_id).first()
         if not fdu:
-            raise HTTPException(status_code=404, detail=f"FDU with id {fdu_id.id} not found")
+            raise HTTPException(status_code=404, detail=f"FDU with id {fdu_id} not found")
         fdu_list.append(fdu)
 
     # Проверяем, существуют ли указанные отзывы
@@ -45,48 +45,53 @@ def read_gases(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
 
 # Получение топлива по ID
 @router.get("/gases/{gas_id}", response_model=schemas.Gas)
-def read_fuel(gas_id: int, db: Session = Depends(get_db)):
+def read_gas(gas_id: int, db: Session = Depends(get_db)):
     db_gas = rest.get_gas(db, gas_id=gas_id)
     if db_gas is None:
         raise HTTPException(status_code=404, detail="Gas not found")
     return db_gas
 
-# @router.delete("/fuels/{fuel_id}", status_code=204)
-# def delete_fuel(fuel_id: int, db: Session = Depends(get_db)):
-#     # Найти топливо по его id
-#     fuel = db.query(models.Fuel).filter(models.Fuel.id == fuel_id).first()
-    
-#     if not fuel:
-#         raise HTTPException(status_code=404, detail="Fuel not found")
+@router.delete("/gases/{gas_id}", status_code=200)
+def delete_gas(gas_id: int, db: Session = Depends(get_db)):
+    # Найти заправку по её id
+    gas = db.query(models.Gas).filter(models.Gas.id == gas_id).first()
+    if not gas:
+        raise HTTPException(status_code=404, detail="Gas not found")
 
-#     # Удалить топливо из базы данных
-#     db.delete(fuel)
-#     db.commit()
+    # Удалить заправку из базы данных
+    db.delete(gas)
+    db.commit()
 
-#     return print("Fuel deleted successfully")
+    return {"detail": f"Deleted Gas with ID: {gas_id} (вы удалили: {gas.adress})"}
 
-# @router.put("/fuels/{fuel_id}", status_code=200)
-# def update_fuel(fuel_id: int, fuel_data: schemas.FuelUpdate, db: Session = Depends(get_db)):
-#     # Найти топливо по id
-#     fuel = db.query(models.Fuel).filter(models.Fuel.id == fuel_id).first()
+@router.put("/gases/{gas_id}", status_code=200)
+def update_gas(gas_id: int, gas_data: schemas.GasUpdate, db: Session = Depends(get_db)):
+    # Найти Gas по id
+    gas = db.query(models.Gas).filter(models.Gas.id == gas_id).first()
 
-#     if not fuel:
-#         raise HTTPException(status_code=404, detail="Fuel not found")
+    if not gas:
+        raise HTTPException(status_code=404, detail="Gas not found")
 
-#     # Обновить данные, если они были переданы
-#     if fuel_data.name is not None:
-#         fuel.name = fuel_data.name
-#     if fuel_data.price is not None:
-#         fuel.price = fuel_data.price
-#     if fuel.fdus is not None:
-#         for fdu_id in fuel.fdus:
-#             fdu = db.query(models.FDU).filter(models.FDU.id == fdu_id).first()
-#             if not fdu:
-#                 raise HTTPException(status_code=404, detail=f"FDU with id {fdu_id} not found")
-#             fuel.fdus.append(fdu)
+    # Обновить данные, если они были переданы
+    if gas_data.adress is not None:
+        gas.adress = gas_data.adress
+    if gas_data.photo is not None:
+        gas.photo = gas_data.photo
+    if gas_data.fdus is not [None]:
+        for fdu_id in gas_data.fdus:
+            fdu = db.query(models.FDU).filter(models.FDU.id == fdu_id).first()
+            if not fdu:
+                raise HTTPException(status_code=404, detail=f"FDU with id {fdu_id} not found")
+            gas.fdus.append(fdu)
+    if gas_data.reviews is not [None]:
+        for review_id in gas_data.reviews:
+            review = db.query(models.Review).filter(models.Review.id == review_id).first()
+            if not review:
+                raise HTTPException(status_code=404, detail=f"Review with id {review_id} not found")
+            gas.reviews.append(review)
 
-#     # Сохранить изменения в базе данных
-#     db.commit()
-#     db.refresh(fuel)
+    # Сохранить изменения в базе данных
+    db.commit()
+    db.refresh(gas)
 
-#     return {"detail": "Fuel updated successfully", "fuel": fuel}
+    return {"detail": "gas updated successfully", "gas": gas}

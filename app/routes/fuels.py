@@ -7,6 +7,7 @@ from ..auth import get_current_active_admin
 from ..database import engine, get_db
 from typing import List
 from ..auth import create_access_token, verify_password, get_password_hash, get_current_user
+from sqlalchemy.future import select
 import logging
 
 router = APIRouter()
@@ -80,3 +81,21 @@ def update_fuel(fuel_id: int, fuel_data: schemas.FuelUpdate, db: Session = Depen
     db.refresh(fuel)
 
     return {"detail": "Fuel updated successfully", "fuel": fuel}
+
+
+@router.delete("/fuels/delete/", status_code=200)
+def delete_fuels(fuel_ids: list[int], db: Session = Depends(get_db)):
+    # Проверяем, есть ли fuels с данными ID
+    stmt = select(models.Fuel).where(models.Fuel.id.in_(fuel_ids))
+    result = db.execute(stmt)
+    fuels_to_delete = result.scalars().all()
+
+    if not fuels_to_delete:
+        raise HTTPException(status_code=404, detail="Fuel(s) not found")
+
+    # Удаляем найденные Fuel(s)
+    for fuel in fuels_to_delete:
+        db.delete(fuel)
+
+    db.commit()
+    return {"detail": f"Deleted Fuel(s) with IDs: {fuel_ids}"}

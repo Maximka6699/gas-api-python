@@ -9,7 +9,7 @@ from typing import List
 from .auth import create_access_token, verify_password, get_password_hash, get_current_user
 import logging
 
-from .routes import fuels, gases, fdus
+from .routes import fuels, gases, fdus, reviews
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -29,7 +29,8 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)
         username=user.username, 
         email=user.email, 
         password=hashed_password,
-        role = user.role if user.role else "user")
+        role = user.role if user.role else "user",
+        reviews = [])
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
@@ -117,3 +118,4 @@ def read_user(user_id: int, db: Session = Depends(get_db)):
 app.include_router(fuels.router)
 app.include_router(gases.router)
 app.include_router(fdus.router)
+app.include_router(reviews.router)

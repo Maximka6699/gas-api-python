@@ -12,7 +12,8 @@ def create_user(db: Session, user: schemas.UserCreate):
         regdate=date.today(),
         role=user.role,
         loyaltylvl="1",  # Начальный уровень лояльности
-        score=0          # Начальный счёт
+        score=0,          # Начальный счёт
+        reviews = []
     )
     db.add(db_user)
     db.commit()
@@ -50,3 +51,12 @@ def get_fdus(db: Session, skip: int = 0, limit: int = 10):
     return db.query(models.FDU).offset(skip).limit(limit).all()
 def get_fdu(db: Session, fdu_id: int):
     return db.query(models.FDU).filter(models.FDU.id == fdu_id).first()
+
+# reviews
+
+def get_reviews(db: Session, skip: int = 0, limit: int = 10):
+    return db.query(models.Review).offset(skip).limit(limit).all()
+def get_reviews_by_gas_id(db: Session, gas_id: int, skip: int = 0, limit: int = 10):
+    return db.query(models.Review).filter(models.Review.gas_id == gas_id).offset(skip).limit(limit).all()
+def get_review(db: Session, review_id: int):
+    return db.query(models.Review).filter(models.Review.id == review_id).first()

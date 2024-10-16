@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException, status, APIRouter
-from datetime import timedelta
+from datetime import timedelta, datetime
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 from .. import rest, models, schemas, database;
@@ -8,7 +8,6 @@ from ..auth import get_current_active_admin
 from ..database import engine, get_db
 from typing import List
 from sqlalchemy.future import select
-from sqlalchemy.ext.asyncio import AsyncSession
 from ..auth import create_access_token, verify_password, get_password_hash, get_current_user
 
 router = APIRouter()
@@ -16,9 +15,12 @@ router = APIRouter()
 @router.post("/fdus/add/",response_model=schemas.FDU)
 def create_fdu(fdu: schemas.FDUCreate, db: Session = Depends(get_db)):
     # Проверяем, существует ли заправка
-    gas_station = db.query(models.Gas).filter(models.Gas.id == fdu.gas_id).first()
-    if not gas_station:
-        raise HTTPException(status_code=404, detail="Gas station not found")
+    if fdu.gas_id is not None:
+        gas_station = db.query(models.Gas).filter(models.Gas.id == fdu.gas_id).first()
+        if not gas_station:
+            raise HTTPException(status_code=404, detail="Gas station not found")
+    else:
+        gas_station = None
 
     # Проверяем, существуют ли указанные виды топлива
     fuels_list = []
@@ -98,7 +100,7 @@ def update_fdu(fdu_id: int, fdu_data: schemas.FDUUpdate, db: Session = Depends(g
     if fdu.service_date is not None:
         fdu.service_date = fdu_data.service_date
     else:
-        fdu.service_date = func.now()    
+        fdu.service_date = datetime.now()    
 
     # Сохранить изменения в базе данных
     db.commit()

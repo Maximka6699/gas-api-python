@@ -16,6 +16,7 @@ class User(Base):
     role = Column(String, default="user")
     loyaltylvl = Column(String, default="1")
     score = Column(Integer, default=50)
+    reviews = relationship("Review", back_populates= "user")
 
 class Review(Base):
     __tablename__ = "Reviews"
@@ -25,6 +26,7 @@ class Review(Base):
     gas_id = Column(Integer, ForeignKey('Gases.id'), index=True)
     text = Column(String)
     review_date = Column(DateTime(timezone=True), default=func.now())
+    user = relationship("User", back_populates= "reviews")
     gas = relationship("Gas", back_populates="reviews")
 
 class Gas(Base):
