@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr, constr
 from typing import Optional, List
 from datetime import date, datetime
 
@@ -10,10 +10,13 @@ class UserBase(BaseModel):
     reviews: List["ReviewBase"] = [None]
 
 class UserCreate(UserBase):
-    password: str
+    email: Optional[EmailStr]
+    username: Optional[constr(min_length=3, max_length=50)] = None   # type: ignore
+    password: Optional[constr(min_length=8)] = None # type: ignore
 
 class User(UserBase):
     id: Optional[int] = None
+    username: str
     regdate: Optional[date]=None
     loyaltylvl: Optional[str]=1
     score: Optional[int]=50
@@ -22,6 +25,12 @@ class User(UserBase):
     class Config:
         orm_mode = True
         from_attributes = True
+
+class UserUpdate(UserBase):
+    username: Optional[constr(min_length=3, max_length=50)] = None   # type: ignore
+    email: Optional[EmailStr] = None
+    password: Optional[constr(min_length=8)] = None # type: ignore
+    old_password: Optional[str] = None
 
 class LoginRequest(BaseModel):
     username: str

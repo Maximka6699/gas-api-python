@@ -10,10 +10,19 @@ from typing import List
 from sqlalchemy.future import select
 from ..auth import create_access_token, verify_password, get_password_hash, get_current_user
 
+
 router = APIRouter()
 
+def check_admin(user: schemas.User):
+    if user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied: Admins only."
+        )
+
 @router.post("/fdus/add/",response_model=schemas.FDU)
-def create_fdu(fdu: schemas.FDUCreate, db: Session = Depends(get_db)):
+def create_fdu(fdu: schemas.FDUCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    check_admin(current_user)
     # Проверяем, существует ли заправка
     if fdu.gas_id is not None:
         gas_station = db.query(models.Gas).filter(models.Gas.id == fdu.gas_id).first()
@@ -54,7 +63,8 @@ def read_fuel(fdu_id: int, db: Session = Depends(get_db)):
     return db_fdu
 
 @router.delete("/fdus/delete/", status_code=200)
-def delete_fdus(fdu_ids: list[int], db: Session = Depends(get_db)):
+def delete_fdus(fdu_ids: list[int], db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    check_admin(current_user)
     # Проверяем, есть ли FDU с данными ID
     stmt = select(models.FDU).where(models.FDU.id.in_(fdu_ids))
     result = db.execute(stmt)
@@ -71,7 +81,8 @@ def delete_fdus(fdu_ids: list[int], db: Session = Depends(get_db)):
     return {"detail": f"Deleted FDU(s) with IDs: {fdu_ids}"}
 
 @router.put("/fdus/{fdu_id}", status_code=200)
-def update_fdu(fdu_id: int, fdu_data: schemas.FDUUpdate, db: Session = Depends(get_db)):
+def update_fdu(fdu_id: int, fdu_data: schemas.FDUUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    check_admin(current_user)
     # Найти FDU по id
     fdu = db.query(models.FDU).filter(models.FDU.id == fdu_id).first()
     if not fdu:

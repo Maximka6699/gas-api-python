@@ -10,9 +10,16 @@ from ..auth import create_access_token, verify_password, get_password_hash, get_
 import logging
 
 router = APIRouter()
+def check_admin(user: schemas.User):
+    if user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied: Admins only."
+        )
 
 @router.post("/gases/add/",response_model=schemas.Gas)
-def create_gas(gas: schemas.GasCreate, db: Session = Depends(get_db)):
+def create_gas(gas: schemas.GasCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    check_admin(current_user)
     # Проверяем, существуют ли указанные FDU
     fdu_list = []
     for fdu_id in gas.fdus:
@@ -52,7 +59,8 @@ def read_gas(gas_id: int, db: Session = Depends(get_db)):
     return db_gas
 
 @router.delete("/gases/{gas_id}", status_code=200)
-def delete_gas(gas_id: int, db: Session = Depends(get_db)):
+def delete_gas(gas_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    check_admin(current_user)
     # Найти заправку по её id
     gas = db.query(models.Gas).filter(models.Gas.id == gas_id).first()
     if not gas:
@@ -65,7 +73,8 @@ def delete_gas(gas_id: int, db: Session = Depends(get_db)):
     return {"detail": f"Deleted Gas with ID: {gas_id} (вы удалили: {gas.adress})"}
 
 @router.put("/gases/{gas_id}", status_code=200)
-def update_gas(gas_id: int, gas_data: schemas.GasUpdate, db: Session = Depends(get_db)):
+def update_gas(gas_id: int, gas_data: schemas.GasUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    check_admin(current_user)
     # Найти Gas по id
     gas = db.query(models.Gas).filter(models.Gas.id == gas_id).first()
 

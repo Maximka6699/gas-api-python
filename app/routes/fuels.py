@@ -12,8 +12,16 @@ import logging
 
 router = APIRouter()
 
+def check_admin(user: schemas.User):
+    if user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied: Admins only."
+        )
+
 @router.post("/fuels/add/",response_model=schemas.Fuel)
-def add_fuel(fuel: schemas.FuelCreate, db: Session = Depends(database.get_db)):
+def add_fuel(fuel: schemas.FuelCreate, db: Session = Depends(database.get_db), current_user: User = Depends(get_current_user)):
+    check_admin(current_user)
     db_fuel = models.Fuel(name = fuel.name, price = fuel.price)
     # Получение FDU по переданным ID и добавление их к топливу
     if fuel.fdus:
@@ -43,7 +51,8 @@ def read_fuel(fuel_id: int, db: Session = Depends(get_db)):
     return db_fuel1
 
 @router.delete("/fuels/{fuel_id}", status_code=200)
-def delete_fuel(fuel_id: int, db: Session = Depends(get_db)):
+def delete_fuel(fuel_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    check_admin(current_user)
     # Найти топливо по его id
     fuel = db.query(models.Fuel).filter(models.Fuel.id == fuel_id).first()
     
@@ -57,7 +66,8 @@ def delete_fuel(fuel_id: int, db: Session = Depends(get_db)):
     return print("Fuel deleted successfully")
 
 @router.put("/fuels/{fuel_id}", status_code=200)
-def update_fuel(fuel_id: int, fuel_data: schemas.FuelUpdate, db: Session = Depends(get_db)):
+def update_fuel(fuel_id: int, fuel_data: schemas.FuelUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    check_admin(current_user)
     # Найти топливо по id
     fuel = db.query(models.Fuel).filter(models.Fuel.id == fuel_id).first()
 
@@ -82,9 +92,10 @@ def update_fuel(fuel_id: int, fuel_data: schemas.FuelUpdate, db: Session = Depen
 
     return {"detail": "Fuel updated successfully", "fuel": fuel}
 
-
+# удаление сразу нескольких видов топлива.
 @router.delete("/fuels/delete/", status_code=200)
-def delete_fuels(fuel_ids: list[int], db: Session = Depends(get_db)):
+def delete_fuels(fuel_ids: list[int], db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    check_admin(current_user)
     # Проверяем, есть ли fuels с данными ID
     stmt = select(models.Fuel).where(models.Fuel.id.in_(fuel_ids))
     result = db.execute(stmt)

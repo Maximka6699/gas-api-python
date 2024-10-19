@@ -77,9 +77,7 @@ def check_admin(user: schemas.User):
 @app.post("/token")
 async def login_for_access_token(login_request: LoginRequest, db: Session = Depends(database.get_db)):
     user = authenticate_user(db, login_request.username, login_request.password)
-    logger.info(f"ИНФААА: {login_request.username, login_request.password}")
     if not user:
-        logger.debug(f"да бля")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
@@ -106,12 +104,63 @@ def read_users(skip: int = 0, limit: int = 10, db: Session = Depends(get_db), cu
     return users
 
 # Получение пользователя по ID
-@app.get("/admin/users/{user_id}", response_model=schemas.User)
-def read_user(user_id: int, db: Session = Depends(get_db)):
+@app.get("/admin/users/{user_id}/", response_model=schemas.User)
+def read_user(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    check_admin(current_user)
     db_user = rest.get_user(db, user_id=user_id)
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
     return db_user
+
+@app.get("/users/me/", response_model=schemas.User)
+def read_user_me(current_user: models.User = Depends(get_current_user)):
+    return current_user
+
+@app.put("/users/me/update/", response_model=schemas.User)
+async def update_current_user(
+    user_update: schemas.UserUpdate,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # Проверка и обновление имени пользователя
+    if user_update.username is not None:
+        user_with_same_username = db.query(models.User).filter(models.User.username == user_update.username).first()
+        if user_with_same_username and user_with_same_username.id != current_user.id:
+            raise HTTPException(status_code=400, detail="Username already taken")
+        current_user.username = user_update.username
+
+    # Проверка и обновление email
+    if user_update.email is not None:
+        user_with_same_email = db.query(models.User).filter(models.User.email == user_update.email).first()
+        if user_with_same_email and user_with_same_email.id != current_user.id:
+            raise HTTPException(status_code=400, detail="Email already registered")
+        current_user.email = user_update.email
+
+    # Обновление пароля (хешируем новый пароль)
+    if user_update.password is not None:
+        if verify_password(user_update.old_password, current_user.password):
+            current_user.password = get_password_hash(user_update.password)
+        else:
+            raise HTTPException(status_code=400, detail="Your old password is incorrect to setup new password")
+
+    # Сохраняем изменения
+    db.add(current_user)
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+@app.delete("/admin/users/{user_id}/", status_code=200)
+def delete_user_by_id(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    check_admin(current_user)
+    # Найти пользователя по его id
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Удалить пользователя из базы данных
+    db.delete(user)
+    db.commit()
+    return {"detail": f"Deleted User with ID: {user_id}"}
 
 
 # штучка, которая позволяет подключить эндпоинты из другого файла
