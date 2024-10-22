@@ -80,11 +80,13 @@ def update_fuel(fuel_id: int, fuel_data: schemas.FuelUpdate, db: Session = Depen
     if fuel_data.price is not None:
         fuel.price = fuel_data.price
     if fuel_data.fdus is not [None]:
+        fdus_list = []
         for fdu_id in fuel_data.fdus:
             fdu = db.query(models.FDU).filter(models.FDU.id == fdu_id).first()
             if not fdu:
                 raise HTTPException(status_code=404, detail=f"FDU with id {fdu_id} not found, {fuel_data.fdus, fdu} ")
-            fuel.fdus.append(fdu)
+            fdus_list.append(fdu)
+        fuel.fdus = fdus_list
 
     # Сохранить изменения в базе данных
     db.commit()
