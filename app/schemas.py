@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, constr
+from pydantic import BaseModel, EmailStr, constr, Json
 from typing import Optional, List
 from datetime import date, datetime
 
@@ -17,7 +17,7 @@ class UserCreate(UserBase):
 class User(UserBase):
     id: Optional[int] = None
     username: str
-    regdate: Optional[date]=None
+    regdate: Optional[datetime]=None
     loyaltylvl: Optional[str]=1
     score: Optional[int]=50
     reviews: List["ReviewBase"] = [None]
@@ -96,19 +96,19 @@ class FuelUpdate(Fuel):
 
 class GasBase(BaseModel):
     id: Optional[int] = None
-    adress: str
-    photo: Optional[str] = None
+    adress: Optional[str] = None
+    photo: Optional[Json] = []
 
 class GasCreate(GasBase):
     adress: str
-    photo: Optional[str] = None
+    photo: Optional[List[str]] = []
     fdus: Optional[List[int]] = []      # Список связанных FDU
     reviews: Optional[List[int]] = []      # Список связанных отзывов
 
 class Gas(GasBase):
     id: int
     adress: str
-    photo: Optional[str] = None
+    photo: Optional[Json] = []
     reviews: List["ReviewBase"] = []  # Список отзывов для данной заправки
     fdus: List[FDUBase] = []      # Список связанных FDU
     class Config:
@@ -117,10 +117,13 @@ class Gas(GasBase):
 
 class GasUpdate(Gas):
     id: Optional[int] = None
-    adress: Optional[str]
-    photo: Optional[str] = None
+    adress: Optional[str] = None
+    photo: Optional[List[str]] = None
     reviews: Optional[List[int]] = []  # Список отзывов для данной заправки
     fdus: Optional[List[int]] = []
+
+class GasPhotos(GasBase):
+    photo: List[str]
 # ----------------------------------------------------------------
 
 class ReviewBase(BaseModel):

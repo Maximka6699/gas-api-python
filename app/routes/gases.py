@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, status, APIRouter
+from fastapi import FastAPI, Depends, HTTPException, status, APIRouter, UploadFile, File
 from datetime import timedelta
 from sqlalchemy.orm import Session
 from .. import rest, models, schemas, database;
@@ -7,7 +7,16 @@ from ..auth import get_current_active_admin
 from ..database import engine, get_db
 from typing import List
 from ..auth import create_access_token, verify_password, get_password_hash, get_current_user
-import logging
+import os, shutil, logging, json
+# -*- coding: utf-8 -*-
+
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+# Директория для сохранения изображений
+UPLOAD_DIR = "pics"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
 
 router = APIRouter()
 def check_admin(user: schemas.User):
@@ -35,6 +44,24 @@ def create_gas(gas: schemas.GasCreate, db: Session = Depends(get_db), current_us
         if not review:
             raise HTTPException(status_code=404, detail=f"Review with id {review_id.id} not found")
         review_list.append(review)
+
+    image_paths = []
+    # Обработка списка ссылок на локальные изображения
+    for i in range(len(gas.photo)):
+        photo_url = gas.photo[i]
+        logger.debug(f"6: {gas.photo[i]}")
+        if not os.path.exists(photo_url):
+            raise HTTPException(status_code=400, detail=f"File {photo_url} does not exist")
+        # Генерация уникального имени файла
+        filename = os.path.basename(photo_url)
+        destination_path = os.path.join(UPLOAD_DIR, filename)
+        # Копирование файла в директорию сервера
+        shutil.copy(photo_url, destination_path)
+        logger.debug(f"{destination_path}")
+        image_paths.append(destination_path)
+
+    # Сохранение всех путей к изображениям в поле image_paths
+    gas.photo = json.dumps(image_paths)
     
     # Создаем новую заправку
     db_gas = models.Gas(adress=gas.adress, photo=gas.photo, fdus=fdu_list, reviews=review_list)
@@ -43,6 +70,41 @@ def create_gas(gas: schemas.GasCreate, db: Session = Depends(get_db), current_us
     db.refresh(db_gas)
 
     return db_gas
+
+@router.post("/gas/{gas_id}/upload-images/", status_code=200)
+def upload_images(gas_id: int, photo: schemas.GasPhotos, db: Session = Depends(database.get_db)):
+    gas = db.query(models.Gas).filter(models.Gas.id == gas_id).first()
+
+    if not gas:
+        raise HTTPException(status_code=404, detail="Gas station not found")
+
+    image_paths = []
+    # Обработка списка ссылок на локальные изображения
+    for i in range(len(photo.photo)):
+        photo_url = photo.photo[i]
+        logger.debug(f"6: {photo.photo[i]}")
+
+
+        if not os.path.exists(photo_url):
+            raise HTTPException(status_code=400, detail=f"File {photo_url} does not exist")
+
+        # Генерация уникального имени файла
+        filename = os.path.basename(photo_url)
+        destination_path = os.path.join(UPLOAD_DIR, filename)
+
+        # Копирование файла в директорию сервера
+        shutil.copy(photo_url, destination_path)
+        logger.debug(f"{destination_path}")
+        # gas.photo
+        image_paths.append(destination_path)
+
+    # Сохранение всех путей к изображениям в поле image_paths
+    gas.photo = json.dumps(image_paths)
+    logger.debug(f"1: {gas.photo}")
+
+    db.commit()
+    db.refresh(gas)
+    return {"uploaded_files": image_paths, "photo_url": gas.photo}
 
 # Получение всех заправок
 @router.get("/gases/", response_model=List[schemas.Gas])
@@ -85,7 +147,22 @@ def update_gas(gas_id: int, gas_data: schemas.GasUpdate, db: Session = Depends(g
     if gas_data.adress is not None:
         gas.adress = gas_data.adress
     if gas_data.photo is not None:
-        gas.photo = gas_data.photo
+        image_paths = []
+        # Обработка списка ссылок на локальные изображения
+        for i in range(len(gas_data.photo)):
+            photo_url = gas_data.photo[i]
+            if not os.path.exists(photo_url):
+                raise HTTPException(status_code=400, detail=f"File {photo_url} does not exist")
+            # Генерация уникального имени файла
+            filename = os.path.basename(photo_url)
+            destination_path = os.path.join(UPLOAD_DIR, filename)
+            # Копирование файла в директорию сервера
+            shutil.copy(photo_url, destination_path)
+            logger.debug(f"{destination_path}")
+            image_paths.append(destination_path)
+
+        # Сохранение всех путей к изображениям в поле image_paths
+        gas.photo = json.dumps(image_paths)
     if gas_data.fdus is not [None]:
         for fdu_id in gas_data.fdus:
             fdu = db.query(models.FDU).filter(models.FDU.id == fdu_id).first()

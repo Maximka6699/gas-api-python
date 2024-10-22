@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, func, ForeignKey, Float, Table
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, func, ForeignKey, Float, Table, ARRAY, JSON
 from .database import Base
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
@@ -34,7 +34,7 @@ class Gas(Base):
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     adress = Column(String)
-    photo = Column(String)
+    photo = Column(JSON)
     reviews = relationship("Review", back_populates="gas")
     fdus = relationship("FDU", back_populates="gases")
 

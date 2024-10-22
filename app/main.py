@@ -7,7 +7,8 @@ from .auth import get_current_active_admin
 from .database import engine, get_db
 from typing import List
 from .auth import create_access_token, verify_password, get_password_hash, get_current_user
-import logging
+import logging, os; from fastapi.staticfiles import StaticFiles; from sqlalchemy.exc import IntegrityError
+
 
 from .routes import fuels, gases, fdus, reviews
 
@@ -19,21 +20,62 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
+# Убедитесь, что путь к папке 'pics' является абсолютным
+pics_directory = os.path.join(os.getcwd(), "pics")
+
+# Подключаем папку с изображениями на URL "/pics"
+app.mount("/pics", StaticFiles(directory=pics_directory), name="pics")
 
 
 # Создание нового пользователя
 @app.post("/create-user/", response_model=schemas.User)
 def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
+    # Проверка длины пароля
+    if len(user.password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password must be at least 8 characters long"
+        )
+    
+    # Проверка уникальности email
+    db_email_user = db.query(models.User).filter(models.User.email == user.email).first()
+    if db_email_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email is already in use"
+        )
+
+    # Проверка уникальности username
+    db_username_user = db.query(models.User).filter(models.User.username == user.username).first()
+    if db_username_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username is already in use"
+        )
+
+    # Хеширование пароля
     hashed_password = get_password_hash(user.password)
+
+    # Создание нового пользователя
     db_user = models.User(
-        username=user.username, 
-        email=user.email, 
+        username=user.username,
+        email=user.email,
         password=hashed_password,
-        role = user.role if user.role else "user",
-        reviews = [])
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
+        role=user.role if user.role else "user",
+        reviews=[]
+    )
+    
+    try:
+        db.add(db_user)
+        db.commit()
+        db.refresh(db_user)
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="An error occurred while saving the user, possibly due to non-unique data"
+        )
+    
     return db_user
 
 from sqlalchemy.orm import Session
