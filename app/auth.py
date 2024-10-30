@@ -23,7 +23,6 @@ logger = logging.getLogger(__name__)
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = os.getenv("ALGORITHM")
 ACCESS_TOKEN_EXPIRE_MINUTES = os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES")
-
 # OAuth2 схема
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
@@ -33,6 +32,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 # Модель данных для токена
 class TokenData(BaseModel):
     username: Optional[str] = None
+    password: Optional[str] = None
 
 # -----------------------------------------------------------------------------------------------
 # Функции для работы с хешированием паролей

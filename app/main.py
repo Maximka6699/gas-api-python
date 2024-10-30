@@ -5,7 +5,8 @@ from . import rest, models, schemas, database; from .schemas import LoginRequest
 from .models import User; from .rest import get_user
 from .auth import get_current_active_admin
 from .database import engine, get_db
-from typing import List
+from typing import List, Annotated
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from .auth import create_access_token, verify_password, get_password_hash, get_current_user
 import logging, os; from fastapi.staticfiles import StaticFiles; from sqlalchemy.exc import IntegrityError
 
@@ -117,8 +118,14 @@ def check_admin(user: schemas.User):
 
 # Эндпоинт для получения токена
 @app.post("/token")
-async def login_for_access_token(login_request: LoginRequest, db: Session = Depends(database.get_db)):
-    user = authenticate_user(db, login_request.username, login_request.password)
+async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], login_request: LoginRequest, db: Session = Depends(database.get_db) ):
+    username = login_request.username
+    password = login_request.password
+    if login_request.username is None:
+        username = form_data.username
+    if login_request.password is None:
+        password = form_data.password
+    user = authenticate_user(db, username, password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

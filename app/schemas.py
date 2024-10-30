@@ -108,7 +108,7 @@ class GasCreate(GasBase):
 class Gas(GasBase):
     id: int
     adress: str
-    photo: Optional[Json] = []
+    photo: Optional[Json] = ""
     reviews: List["ReviewBase"] = []  # Список отзывов для данной заправки
     fdus: List[FDUBase] = []      # Список связанных FDU
     class Config:
