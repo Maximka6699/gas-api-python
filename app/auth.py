@@ -10,15 +10,19 @@ from .models import User
 from .rest import get_user_by_username
 from .database import get_db
 import logging
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
 # Секретный ключ для создания JWT
-SECRET_KEY = "1234"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 1200
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = os.getenv("ALGORITHM")
+ACCESS_TOKEN_EXPIRE_MINUTES = os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES")
 
 # OAuth2 схема
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
