@@ -118,13 +118,9 @@ def check_admin(user: schemas.User):
 
 # Эндпоинт для получения токена
 @app.post("/token")
-async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], login_request: LoginRequest, db: Session = Depends(database.get_db) ):
+async def login_for_access_token(login_request: LoginRequest, db: Session = Depends(database.get_db) ):
     username = login_request.username
     password = login_request.password
-    if login_request.username is None:
-        username = form_data.username
-    if login_request.password is None:
-        password = form_data.password
     user = authenticate_user(db, username, password)
     if not user:
         raise HTTPException(

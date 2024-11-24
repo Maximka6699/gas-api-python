@@ -11,8 +11,8 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     email: Optional[EmailStr]
-    username: Optional[constr(min_length=3, max_length=50)] = None   # type: ignore
-    password: Optional[constr(min_length=8)] = None # type: ignore
+    username: Optional[str]    # type: ignore
+    password: Optional[str] # type: ignore
 
 class User(UserBase):
     id: Optional[int] = None
